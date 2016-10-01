@@ -1,0 +1,106 @@
+---
+title: "New York City Crime & Population Trends"
+author: "Brent Brewington (github.com/bbrewington)"
+date: "September 27, 2016"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rvest)      # to scrape wikipedia data
+library(readr)      # to read csv data
+library(ggplot2)    # plotting (I'm an addict)
+library(dplyr)      # data munging
+library(tidyr)      # data tidying
+library(scales)     # package for tidying up plot axes
+```
+
+
+#### Read crime & population data into R:
+
+
+##### Scrape NYC Population Data from Wikipedia
+```{r scrape_population_data, echo = TRUE, message = FALSE}
+nyc.population <- read_html("https://en.wikipedia.org/wiki/Demographics_of_New_York_City") %>% 
+     html_nodes(".toccolours") %>% html_table() %>% as.data.frame() %>% 
+     .[2:32,1:2] %>% 
+     select(year = Historical.population, population = Historical.population.1) %>%     
+     mutate(year = as.numeric(year), population = parse_number(population))
+glimpse(nyc.population)
+```
+
+
+##### Get Crime Data from nyc.gov/html/nypd:
+
+1. Downloaded Excel (.xls) file: http://www.nyc.gov/html/nypd/downloads/excel/analysis_and_planning/seven_major_felony_offenses_2000_2015.xls
+2. Copy+Paste data into csv file
+3. Read into R via readr::read_csv
+```{r read_crime_data, echo = TRUE, message = FALSE}
+nyc.crime <- read_csv("nyc_crimedata_2000-2015.csv", col_names = TRUE) %>% 
+     gather(year, crime.count, `2000`:`2015`) %>% 
+     mutate(year = as.numeric(year))
+glimpse(nyc.crime)
+```
+
+##### Plot of NYC population trend
+```{r nyc_population_trend, echo = FALSE}
+ggplot(nyc.population, aes(year, population)) +
+     geom_point() + geom_line() + 
+     scale_y_continuous(labels = comma_format()) + 
+     ggtitle("NYC Population Over Time") + ylab("Population") + xlab("Year")
+```
+
+##### Fit linear model to NYC population (1980-2010)
+```{r nyc_population_linear_model, echo = FALSE}
+nyc.population1 <- nyc.population %>% filter(year >= 1980)
+nyc.population_model1 <- lm(nyc.population1$population ~ nyc.population1$year)
+summary(nyc.population_model1)
+nyc.population1 %>% mutate(population.est = -75428524 + 41646 * year) %>%
+     ggplot(aes(x = year)) + geom_line(aes(y = population.est), color = "red") + geom_point(aes(y = population)) + ggtitle("Fitted Line: NYC Population from 1980-2010 (by decade)") +
+     xlab("Year") + ylab("Population") + scale_y_continuous(labels = comma_format())
+```
+
+NYC population from 1980-2010 = -75428524 + (41646 * year)
+
+##### Create dataset: NYC Crime Rate 2000-2015
+```{r nyc_crime_rate_dataset}
+nyc.population_crime <- data.frame(year = 2000:2015) %>% 
+     mutate(population.est = -75428524 + 41646 * year) %>%
+     left_join(nyc.crime, by = "year") %>%
+     mutate(crime.rate = crime.count / population.est) %>% 
+     mutate(crime.rate_per.million = crime.rate * 1000000)
+```
+
+```{r display_nyc_crime_rate_dataset, echo = FALSE}
+glimpse(nyc.population_crime)
+```
+
+##### Create dataset: NYC Violent Crime Rate 2000-2015
+```{r nyc_population_violentcrime_dataset}
+nyc.population_violentcrime <- data.frame(year = 2000:2015) %>% 
+     mutate(population.est = -75428524 + 41646 * year) %>%
+     left_join(nyc.crime %>% filter(OFFENSE %in% c("MURDER & NON-NEGL. MANSLAUGHTER", "RAPE", "ROBBERY", "FELONY ASSAULT")) %>% group_by(year) %>% 
+                    summarise(crime.count = sum(crime.count)), by = "year") %>%
+     mutate(crime.rate = crime.count / population.est, 
+            crime.rate_per.million = 1000000 * crime.count / population.est)
+```
+
+```{r display_nyc_population_violentcrime_dataset, echo = FALSE}
+glimpse(nyc.population_violentcrime)
+```
+
+### Plots
+```{r plot_seven_major_felonies}
+ggplot(nyc.population_crime, aes(year, crime.rate_per.million, color = OFFENSE)) + geom_point() + geom_smooth(se = FALSE) + ggtitle("NYC Seven Major Felony Offenses by Year: 2000-2015") +
+     xlab("Year") + ylab("Crimes Per Million NYC Residents")
+```
+
+```{r plot_murder_rate}
+ggplot(nyc.population_crime %>% filter(OFFENSE == "MURDER & NON-NEGL. MANSLAUGHTER"), aes(year, crime.rate_per.million)) + geom_point() + geom_smooth(se = FALSE) + geom_line() +
+     xlab("Year") + ylab("Crimes Per Million NYC Residents") + ggtitle("NYC Murder Rate: 2000-2015")
+```
+
+```{r plot_violent_crime}
+ggplot(nyc.population_violentcrime, aes(year, crime.rate_per.million)) + geom_bar(stat = "identity", aes(fill = "Total Violent Crime Rate")) + geom_smooth(data = nyc.population_crime %>% filter(OFFENSE %in% c("MURDER & NON-NEGL. MANSLAUGHTER", "RAPE", "ROBBERY", "FELONY ASSAULT")), aes(x = year, y = crime.rate_per.million, color = OFFENSE), se = FALSE) + geom_point(data = nyc.population_crime %>% filter(OFFENSE %in% c("MURDER & NON-NEGL. MANSLAUGHTER", "RAPE", "ROBBERY", "FELONY ASSAULT")), aes(x = year, y = crime.rate_per.million, color = OFFENSE)) + scale_fill_manual(values = "black", name = NULL) + scale_color_discrete(name = NULL) +
+     ggtitle("NYC Violent Crime Rate: 2000-2015") + ylab("Crimes per Million NYC Residents") + xlab("Year")
+```
