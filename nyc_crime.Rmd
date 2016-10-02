@@ -1,7 +1,7 @@
 ---
 title: "New York City Crime & Population Trends"
 author: "Brent Brewington (github.com/bbrewington)"
-date: "September 27, 2016"
+date: "October 2, 2016"
 output: github_document
 ---
 
@@ -92,15 +92,15 @@ glimpse(nyc.population_violentcrime)
 ### Plots
 ```{r plot_seven_major_felonies}
 ggplot(nyc.population_crime, aes(year, crime.rate_per.million, color = OFFENSE)) + geom_point() + geom_smooth(se = FALSE) + ggtitle("NYC Seven Major Felony Offenses by Year: 2000-2015") +
-     xlab("Year") + ylab("Crimes Per Million NYC Residents")
+     xlab("Year") + ylab("Seven Major Felonies Per Million NYC Residents")
 ```
 
 ```{r plot_murder_rate}
-ggplot(nyc.population_crime %>% filter(OFFENSE == "MURDER & NON-NEGL. MANSLAUGHTER"), aes(year, crime.rate_per.million)) + geom_point() + geom_smooth(se = FALSE) + geom_line() +
-     xlab("Year") + ylab("Crimes Per Million NYC Residents") + ggtitle("NYC Murder Rate: 2000-2015")
+ggplot(nyc.population_crime %>% filter(OFFENSE == "MURDER & NON-NEGL. MANSLAUGHTER"), aes(year, crime.rate_per.million)) + geom_point() + geom_smooth() + geom_line() +
+     xlab("Year") + ylab("Murders Per Million NYC Residents") + ggtitle("NYC Murder Rate: 2000-2015") + geom_label(aes(x = 2010, y = 90), label = "Blue Line: Lowess Smoothing (with 95% confidence band)") + scale_y_continuous(limits = c(0, 100))
 ```
 
 ```{r plot_violent_crime}
 ggplot(nyc.population_violentcrime, aes(year, crime.rate_per.million)) + geom_bar(stat = "identity", aes(fill = "Total Violent Crime Rate")) + geom_smooth(data = nyc.population_crime %>% filter(OFFENSE %in% c("MURDER & NON-NEGL. MANSLAUGHTER", "RAPE", "ROBBERY", "FELONY ASSAULT")), aes(x = year, y = crime.rate_per.million, color = OFFENSE), se = FALSE) + geom_point(data = nyc.population_crime %>% filter(OFFENSE %in% c("MURDER & NON-NEGL. MANSLAUGHTER", "RAPE", "ROBBERY", "FELONY ASSAULT")), aes(x = year, y = crime.rate_per.million, color = OFFENSE)) + scale_fill_manual(values = "black", name = NULL) + scale_color_discrete(name = NULL) +
-     ggtitle("NYC Violent Crime Rate: 2000-2015") + ylab("Crimes per Million NYC Residents") + xlab("Year")
+     ggtitle("NYC Violent Crime Rate: 2000-2015") + ylab("Violent Crimes per Million NYC Residents") + xlab("Year")
 ```

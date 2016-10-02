@@ -1,7 +1,7 @@
 New York City Crime & Population Trends
 ================
 Brent Brewington (github.com/bbrewington)
-September 27, 2016
+October 2, 2016
 
 #### Read crime & population data into R:
 
@@ -111,21 +111,21 @@ nyc.population_violentcrime <- data.frame(year = 2000:2015) %>%
 
 ``` r
 ggplot(nyc.population_crime, aes(year, crime.rate_per.million, color = OFFENSE)) + geom_point() + geom_smooth(se = FALSE) + ggtitle("NYC Seven Major Felony Offenses by Year: 2000-2015") +
-     xlab("Year") + ylab("Crimes Per Million NYC Residents")
+     xlab("Year") + ylab("Seven Major Felonies Per Million NYC Residents")
 ```
 
 ![](nyc_crime_files/figure-markdown_github/plot_seven_major_felonies-1.png)
 
 ``` r
-ggplot(nyc.population_crime %>% filter(OFFENSE == "MURDER & NON-NEGL. MANSLAUGHTER"), aes(year, crime.rate_per.million)) + geom_point() + geom_smooth(se = FALSE) + geom_line() +
-     xlab("Year") + ylab("Crimes Per Million NYC Residents") + ggtitle("NYC Murder Rate: 2000-2015")
+ggplot(nyc.population_crime %>% filter(OFFENSE == "MURDER & NON-NEGL. MANSLAUGHTER"), aes(year, crime.rate_per.million)) + geom_point() + geom_smooth() + geom_line() +
+     xlab("Year") + ylab("Murders Per Million NYC Residents") + ggtitle("NYC Murder Rate: 2000-2015") + geom_label(aes(x = 2010, y = 90), label = "Blue Line: Lowess Smoothing (with 95% confidence band)") + scale_y_continuous(limits = c(0, 100))
 ```
 
 ![](nyc_crime_files/figure-markdown_github/plot_murder_rate-1.png)
 
 ``` r
 ggplot(nyc.population_violentcrime, aes(year, crime.rate_per.million)) + geom_bar(stat = "identity", aes(fill = "Total Violent Crime Rate")) + geom_smooth(data = nyc.population_crime %>% filter(OFFENSE %in% c("MURDER & NON-NEGL. MANSLAUGHTER", "RAPE", "ROBBERY", "FELONY ASSAULT")), aes(x = year, y = crime.rate_per.million, color = OFFENSE), se = FALSE) + geom_point(data = nyc.population_crime %>% filter(OFFENSE %in% c("MURDER & NON-NEGL. MANSLAUGHTER", "RAPE", "ROBBERY", "FELONY ASSAULT")), aes(x = year, y = crime.rate_per.million, color = OFFENSE)) + scale_fill_manual(values = "black", name = NULL) + scale_color_discrete(name = NULL) +
-     ggtitle("NYC Violent Crime Rate: 2000-2015") + ylab("Crimes per Million NYC Residents") + xlab("Year")
+     ggtitle("NYC Violent Crime Rate: 2000-2015") + ylab("Violent Crimes per Million NYC Residents") + xlab("Year")
 ```
 
 ![](nyc_crime_files/figure-markdown_github/plot_violent_crime-1.png)
